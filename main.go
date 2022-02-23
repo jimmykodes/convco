@@ -68,6 +68,7 @@ revert     Reverts a previous commit
 
 func main() {
 	help := flag.Bool("h", false, "help")
+	dryRun := flag.Bool("dry-run", false, "if choosing to make a git commit, that commit will be a dry-run commit")
 	flag.Parse()
 
 	if *help {
@@ -97,11 +98,16 @@ func main() {
 	sb.WriteString(": ")
 	sb.WriteString(answers.Description)
 	if answers.Commit {
-		err := exec.Command("git", "commit", "-m", sb.String()).Run()
+		args := []string{"commit", "-m", sb.String()}
+		if *dryRun {
+			args = append(args, "--dry-run")
+		}
+		output, err := exec.Command("git", args...).CombinedOutput()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "fatal: %s\n", err)
 			return
 		}
+		fmt.Println(string(output))
 	} else {
 		fmt.Println(sb.String())
 	}
