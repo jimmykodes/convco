@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -58,6 +59,10 @@ revert     Reverts a previous commit
 			Prompt:   &survey.Input{Message: "Description:"},
 			Validate: survey.Required,
 		},
+		{
+			Name:   "commit",
+			Prompt: &survey.Confirm{Message: "Make commit?:"},
+		},
 	}
 )
 
@@ -74,13 +79,14 @@ func main() {
 		Type        string
 		Scope       string
 		Description string
+		Commit      bool
 	}{}
 	err := survey.Ask(qs, &answers)
 	if errors.Is(err, terminal.InterruptErr) {
 		return
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "fatal: %s", err)
+		fmt.Fprintf(os.Stderr, "fatal: %s\n", err)
 		return
 	}
 	var sb strings.Builder
@@ -90,5 +96,13 @@ func main() {
 	}
 	sb.WriteString(": ")
 	sb.WriteString(answers.Description)
-	fmt.Println(sb.String())
+	if answers.Commit {
+		err := exec.Command("git", "commit", "-m", sb.String()).Run()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "fatal: %s\n", err)
+			return
+		}
+	} else {
+		fmt.Println(sb.String())
+	}
 }
